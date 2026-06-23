@@ -1,7 +1,7 @@
 // =================================================================================================
 // PARAMETRIZED SYNCHRONOUS FIFO
 //
-// INCLUSIONS:
+// Inclusions:
 // - fifo
 // - fifo_if
 // =================================================================================================
@@ -11,6 +11,12 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // RTL DESIGN
+//
+// Features:
+// - Parametrized FIFO data width (WIDTH) and FIFO depth (DEPTH)
+// - Single clock for both write and read operations
+// - Support for simultaneous write and read operations
+// - Synchronous active-low reset
 
 module fifo #(
   parameter int WIDTH = 8,
@@ -26,33 +32,24 @@ module fifo #(
   output logic             empty
 );
 
-  // Local parameter for address width
-  localparam int ADDR_WIDTH = $clog2 (DEPTH);
+  localparam int ADDR_WIDTH = $clog2(DEPTH);
 
-  // FIFO array
-  logic [WIDTH-1:0] fifo_mem [0:DEPTH-1];
-
-  // Write and read pointers
-  logic [ADDR_WIDTH-1:0] wr_ptr;
-  logic [ADDR_WIDTH-1:0] rd_ptr;
-
-  // FIFO occupancy count - has one extra bit to avoid overflow
-  logic [ADDR_WIDTH:0] count;
-
-  // Valid flags to check for space to write or data to read
-  logic  wr_valid;
-  logic  rd_valid;
-  assign wr_valid = (wr_en && !full);
-  assign rd_valid = (rd_en && !empty);
-
-  // Status flags
-  assign full  = (count == DEPTH);
-  assign empty = (count == 0);
+  logic [     WIDTH-1:0] fifo_mem [0:DEPTH-1];  // Memory array
+  logic [ADDR_WIDTH-1:0] wr_ptr;                // Write pointer
+  logic [ADDR_WIDTH-1:0] rd_ptr;                // Read pointer
+  logic [ADDR_WIDTH  :0] count;                 // Occupancy count - has one extra bit
+  logic                  wr_valid;              // Write valid signal
+  logic                  rd_valid;              // Read valid signal
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // MAIN FIFO LOGIC
 
-  always_ff @(posedge clk)
+  assign wr_valid = (wr_en && !full);
+  assign rd_valid = (rd_en && !empty);
+  assign full     = (count == DEPTH);
+  assign empty    = (count == 0);
+
+  always_ff @(posedge clk) begin
     if (!rst_n) begin
       wr_ptr  <= 0;
       rd_ptr  <= 0;
@@ -60,31 +57,19 @@ module fifo #(
       count   <= 0;
     end else begin
 
-      //////////////////////////////////////////////////////////////////////////////////////////////
-      // WRITE TO FIFO
-
+      // Write from FIFO if valid
       if (wr_valid) begin
-        fifo_mem [wr_ptr] <= wr_data;
-        if (wr_ptr == DEPTH - 1)
-          wr_ptr <= 0;
-        else
-          wr_ptr <= wr_ptr + 1;
+        fifo_mem[wr_ptr] <= wr_data;
+        wr_ptr           <= (wr_ptr == DEPTH - 1) ? 0 : (wr_ptr + 1);
       end
 
-      //////////////////////////////////////////////////////////////////////////////////////////////
-      // READ FROM FIFO
-
+      // Read from FIFO if valid
       if (rd_valid) begin
-        rd_data  <= fifo_mem [rd_ptr];
-        if (rd_ptr == DEPTH - 1)
-          rd_ptr <= 0;
-        else
-          rd_ptr <= rd_ptr + 1;
+        rd_data <= fifo_mem[rd_ptr];
+        rd_ptr  <= (rd_ptr == DEPTH - 1) ? 0 : (rd_ptr + 1);
       end
 
-      //////////////////////////////////////////////////////////////////////////////////////////////
-      // UPDATE FIFO COUNT
-
+      // Update occupancy count
       case ({wr_valid, rd_valid})
         2'b10  : count <= count + 1;
         2'b01  : count <= count - 1;
@@ -92,6 +77,7 @@ module fifo #(
       endcase
 
     end
+  end
 
 endmodule
 
