@@ -6,6 +6,8 @@ methodology and allows reusability for multiple tests in the future.
 
 ## DUT Overview
 
+The design primarily includes the following features:
+
 * Parametrized FIFO data width (`WIDTH`) and FIFO depth (`DEPTH`)
 * Single clock for both write and read operations
 * Support for simultaneous write and read operations
@@ -20,20 +22,21 @@ Click on this link to view the test: https://www.edaplayground.com/x/YmYC.
 
 ### Inclusions
 
-| Component            | Role                                                                                      |
-| -------------------- | ----------------------------------------------------------------------------------------- |
-| `fifo_if`            | Interface bundling DUT inputs/outputs and internal pointers between testbench and DUT     |
-| `fifo_sequence_item` | Transaction class defining randomized DUT inputs and captured DUT outputs                 |
-| `fifo_sequence`      | Generates a stream of randomized `fifo_sequence_item` transactions for the test           |
-| `fifo_sequencer`     | Arbitrates and forwards sequence items from the sequence to the driver                    |
-| `fifo_driver`        | Drives transaction values from the sequencer onto the DUT via the virtual interface       |
-| `fifo_monitor`       | Samples DUT inputs/outputs each clock cycle and broadcasts them via its analysis port     |
-| `fifo_agent`         | Encapsulates and connects the driver, monitor, and sequencer                              |
-| `fifo_scoreboard`    | Reference model that compares expected vs. actual DUT outputs to check correctness        |
-| `fifo_coverage`      | Covergroup-based subscriber that tracks functional coverage of corner-case scenarios      |
-| `fifo_env`           | Instantiates and connects the agent, scoreboard, and coverage components                  |
-| `fifo_test`          | Builds the environment and starts the sequence to run the test                            |
-| `fifo_tb_top`        | Top-level module instantiating the interface, DUT, clock generation, and running the test |
+| Component            | Role                                                                                                 |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `fifo_tb_pkg`        | Package defining testbench parameters and including/encapsulating all testbench files                |
+| `fifo_if`            | Interface bundling DUT inputs/outputs and internal pointers between the testbench and the DUT        |
+| `fifo_sequence_item` | Transaction class defining randomized DUT inputs and captured DUT outputs                            |
+| `fifo_sequence`      | Generates a stream of randomized `fifo_sequence_item` transactions for the test                      |
+| `fifo_sequencer`     | Arbitrates and forwards sequence items from the sequence to the driver                               |
+| `fifo_driver`        | Drives transaction values from the sequencer onto the DUT via the virtual interface                  |
+| `fifo_monitor`       | Samples DUT inputs/outputs each clock cycle and broadcasts them via its analysis port                |
+| `fifo_agent`         | Encapsulates and connects the driver, monitor, and sequencer                                         |
+| `fifo_scoreboard`    | Reference model that compares expected vs. actual DUT outputs to check correctness                   |
+| `fifo_coverage`      | Covergroup-based subscriber that tracks functional coverage of corner-case scenarios                 |
+| `fifo_env`           | Encapsulates and connects the agent, scoreboard, and coverage                                        |
+| `fifo_test`          | Builds the environment and starts the sequence to run the test                                       |
+| `fifo_tb_top`        | Top-level module instantiating the interface and the DUT, generating the clock, and running the test |
 
 ### Architecture
 
@@ -44,16 +47,16 @@ fifo_tb_top
 └── fifo_test
     └── fifo_env
         ├── fifo_agent
+        │   ├── fifo_sequencer
         │   ├── fifo_driver
-        │   ├── fifo_monitor
-        │   └── fifo_sequencer
+        │   └── fifo_monitor
         ├── fifo_scoreboard
         └── fifo_coverage
 ```
 
 ### Constraints
 
-To emulate desired behavior, two constraints were applied during the randomized stimulus generation:
+To emulate the desired behavior, two constraints were applied during the randomized stimulus generation:
 
 * Resets will occur very infrequently to allow the DUT to perform write and/or read operations
   uninterrupted.
@@ -73,7 +76,7 @@ However, the monitor observes inputs and outputs from a single given clock cycle
 that those inputs are actually new inputs (and the outputs from those new inputs have yet to be
 generated).
 
-To handle this mismatch, the scoreboard creates a "delay" when using the inputs by storing given
+To handle this mismatch, the scoreboard creates a "delay" when using the inputs by storing the given
 inputs to use them for the next monitor-provided outputs. This will allow the reference model to use
 the "previous" inputs and the "current" outputs (which are generated by the "previous" inputs).
 
@@ -102,7 +105,7 @@ scenario was covered in the test or `0%` otherwise.
 | Write last element to make FIFO full              | `full = 0 -> 1`, `empty = 0 -> 0` |
 | Read last element to make FIFO empty              | `full = 0 -> 0`, `empty = 0 -> 1` |
 | Write and read simultaneously when FIFO is full   | `full = 1 -> 0`, `empty = 0 -> 0` |
-| Write and read simultaneously when FIFO is empty  | `full = ? -> 0`, `empty = ? -> 1` |
+| Write and read simultaneously when FIFO is empty  | `full = 0 -> 0`, `empty = 1 -> 0` |
 | Reset, write, and read simultaneously             | `full = ? -> 0`, `empty = ? -> 1` |
 | Read pointer wraparound                           | `rd_ptr = DEPTH - 1 -> 0`         |
 | Write pointer wraparound                          | `wr_ptr = DEPTH - 1 -> 0`         |
@@ -113,6 +116,6 @@ error message.
 
 ## Future Implementations
 
-* Implement additional tests, such as filling up an empty FIFO, draining a full FIFO, and testing
-  the FIFO with different `WIDTH` and `DEPTH` parameters, to increase test comprehensiveness and to
-  practice reusing UVM components.
+* Implement multiple tests, such as filling up an empty FIFO, draining a full FIFO, and testing
+  the FIFO with different `WIDTH`, `DEPTH`, and `TEST_SIZE` parameters, to increase test
+  comprehensiveness and to practice reusing UVM components.
