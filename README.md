@@ -116,6 +116,8 @@ error message.
 
 ## Future Implementations
 
+For now, I have focused on implementing the main verification environment. Below are a few planned
+future additions:
 * Add SVA.
 * Implement multiple tests, such as filling up an empty FIFO, draining a full FIFO, and testing
   the FIFO with different `WIDTH`, `DEPTH`, and `TEST_SIZE` parameters.
