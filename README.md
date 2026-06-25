@@ -116,6 +116,6 @@ error message.
 
 ## Future Implementations
 
+* Add SVA.
 * Implement multiple tests, such as filling up an empty FIFO, draining a full FIFO, and testing
-  the FIFO with different `WIDTH`, `DEPTH`, and `TEST_SIZE` parameters, to increase test
-  comprehensiveness and to practice reusing UVM components.
+  the FIFO with different `WIDTH`, `DEPTH`, and `TEST_SIZE` parameters.
